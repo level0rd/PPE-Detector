@@ -17,7 +17,6 @@ from PIL import Image
 
 import numpy
 import qimage2ndarray
-import logging
 import numpy as np
 from openvino.inference_engine import IECore
 
