@@ -12,34 +12,24 @@ from PyQt5.QtWidgets import  QLabel
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1620, 1010) # 661, 586
+        MainWindow.resize(1620, 1010) 
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.wg_video = QVideoWidget(self.centralwidget)
         self.wg_video.setGeometry(QtCore.QRect(10, 10, 1600, 900))
         self.wg_video.setObjectName("wg_video")
 
-        # создание label
-        self.label = QLabel(self.centralwidget) # .centralwidget
+        self.label = QLabel(self.centralwidget) 
         self.label.move(10, 10)
         self.label.resize(1600, 900)
 
         self.bt_start = QtWidgets.QPushButton(self.centralwidget)
-        self.bt_start.setGeometry(QtCore.QRect(730, 920, 160, 50)) # 250, 500, 160, 50
+        self.bt_start.setGeometry(QtCore.QRect(730, 920, 160, 50))
         font = QtGui.QFont()
         font.setFamily("Times New Roman")
         font.setPointSize(28)
         self.bt_start.setFont(font)
         self.bt_start.setObjectName("bt_start")
-
-        # MainWindow.setCentralWidget(self.centralwidget)
-        # self.menubar = QtWidgets.QMenuBar(MainWindow)
-        # self.menubar.setGeometry(QtCore.QRect(0, 0, 661, 18))
-        # self.menubar.setObjectName("menubar")
-        # MainWindow.setMenuBar(self.menubar)
-        # self.statusbar = QtWidgets.QStatusBar(MainWindow)
-        # self.statusbar.setObjectName("statusbar")
-        # MainWindow.setStatusBar(self.statusbar)
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
