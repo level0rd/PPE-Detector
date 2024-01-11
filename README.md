@@ -1,5 +1,5 @@
 # PPE detector
- A program that detects personal protective equipment on people.
+The program detects people and personal protective equipment on the received video stream using artificial intelligence. It works without using a video accelerator (OpenVINO).
 
 ## Algoritm
 <p align="center">
