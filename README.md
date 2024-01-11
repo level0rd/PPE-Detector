@@ -1,4 +1,5 @@
-# ppe_detector
+# PPE detector
+ A program for detecting personal protective equipment on humans.
 
 ## Algoritm
 <p align="center">
