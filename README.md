@@ -1,5 +1,5 @@
 # PPE detector
- A program for detecting personal protective equipment on humans.
+ A program that detects personal protective equipment on people.
 
 ## Algoritm
 <p align="center">
