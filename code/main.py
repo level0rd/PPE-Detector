@@ -217,7 +217,7 @@ class Thread(QThread):
 
         model = "../yolov5n.xml"
         net = ie.read_network(model=model)
-        assert len(net.input_info.keys()) == 1, "Sample supports only YOLO V3 based single input topologies"
+        # assert len(net.input_info.keys()) == 1, "Sample supports only YOLO V3 based single input topologies"
         input_blob = next(iter(net.input_info))
         net.batch_size = 1
         # Read and pre-process input images
@@ -239,23 +239,23 @@ class Thread(QThread):
                 width = int(640)
                 height = int(input_img.shape[0] * (100 / (input_img.shape[1] / 640)) / 100)
 
-                dsize = (width, height)
+                frame_size = (width, height)
 
                 # Resize image
-                input_img = cv2.resize(input_img, dsize)
+                input_img = cv2.resize(input_img, frame_size)
 
-                resframe = copy.deepcopy(input_img)
+                res_frame = copy.deepcopy(input_img)
 
                 # Detect human body and draw bounding boxes
-                res = person_det.image_infer(input_img)
-                people = draw_bounding_boxes(resframe, res['detection_out'][0][0]) 
+                people_coordinates = person_det.image_infer(input_img)
+                people = draw_bounding_boxes(res_frame, people_coordinates['detection_out'][0][0]) 
                 ppes = list()
 
                 for obj in people:
 
 		    
-                    rgbImage = cv2.cvtColor(resframe, cv2.COLOR_BGR2RGB)
-                    pil_img = Image.fromarray(rgbImage)
+                    rgb_image = cv2.cvtColor(res_frame, cv2.COLOR_BGR2RGB)
+                    pil_img = Image.fromarray(rgb_image)
 
                     # Cropping a person from an image
 		    crop_frame = pil_img.crop(
@@ -320,9 +320,9 @@ class Thread(QThread):
                     if obj['class_id'] != 2:
                         color = (0, 0, 0)
 
-                    cv2.rectangle(resframe, (obj['xmin'], obj['ymin']), (obj['xmax'], obj['ymax']), color, 2)
+                    cv2.rectangle(res_frame, (obj['xmin'], obj['ymin']), (obj['xmax'], obj['ymax']), color, 2)
 
-                rgbImage = cv2.cvtColor(resframe, cv2.COLOR_BGR2RGB)
+                rgbImage = cv2.cvtColor(res_frame, cv2.COLOR_BGR2RGB)
                 h, w, ch = rgbImage.shape
                 bytesPerLine = ch * w
                 convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format_RGB888)
