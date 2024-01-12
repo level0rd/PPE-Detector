@@ -20,7 +20,31 @@ import qimage2ndarray
 import numpy as np
 from openvino.inference_engine import IECore
 
-person_model = 'person-detection-0200'
+PERSON_MODEL = 'person-detection-0200'
+GREEN = (0, 255, 0)
+RED = (0, 0, 255)
+BLACK = (0, 0, 0)
+
+class MainWindow(QWidget, Ui_MainWindow):
+
+    def __init__(self, parent=None):
+        super(MainWindow, self).__init__(parent=parent)
+        self.setupUi(self)
+        self.show()
+        self.bt_start.clicked.connect(lambda: self.bt_start_click())
+
+    def bt_start_click(self):
+        th = Thread(self)
+        th.changePixmap.connect(self.setImage)
+        th.start()
+
+    @pyqtSlot(QImage)
+    def setImage(self, image):
+        self.label.setPixmap(QPixmap.fromImage(image))
+
+    def closeEvent(self, event):
+        event.accept()
+	    
 
 class openvino_model:
     def __init__(self):
@@ -213,7 +237,7 @@ class Thread(QThread):
     def run(self):
         ie = IECore()
         person_det = openvino_model()
-        person_det.model_load(ie, person_model, 'CPU', True)
+        person_det.model_load(ie, PERSON_MODEL, 'CPU', True)
 
         model = "../yolov5n.xml"
         net = ie.read_network(model=model)
@@ -222,7 +246,6 @@ class Thread(QThread):
         net.batch_size = 1
         # Read and pre-process input images
         n, c, h, w = net.input_info[input_blob].input_data.shape
-        labels_map = None
         exec_net = ie.load_network(network=net, num_requests=2, device_name='CPU')
 
         key = -1
@@ -243,7 +266,6 @@ class Thread(QThread):
 
                 # Resize image
                 input_img = cv2.resize(input_img, frame_size)
-
                 res_frame = copy.deepcopy(input_img)
 
                 # Detect human body and draw bounding boxes
@@ -267,7 +289,7 @@ class Thread(QThread):
                     request_id = current_request_id
                     h = 640
 
-                    in_person_frame = letterbox(person_frame, (w, h))
+                    input_person_frame = letterbox(person_frame, (w, h))
 
  		    # Left corner of the found person
                     person_x1 = obj['xmin']
@@ -275,11 +297,11 @@ class Thread(QThread):
 
                     # Resize input_frame to network size
 		    # Change data layout from HWC to CHW
-                    in_person_frame = in_person_frame.transpose((2, 0, 1))  
-
-                    in_person_frame = in_person_frame.reshape((n, c, h, w))
+                    input_person_frame = input_person_frame.transpose((2, 0, 1))  
+                    input_person_frame = input_person_frame.reshape((n, c, h, w))
+			
                     try:
-                    exec_net.start_async(request_id=request_id, inputs={input_blob: in_person_frame})
+                    exec_net.start_async(request_id=request_id, inputs={input_blob: input_person_frame})
                     except Exception as ex:
                         print(ex)
 
@@ -287,11 +309,12 @@ class Thread(QThread):
                         output = exec_net.requests[current_request_id].output_blobs
                         for layer_name, out_blob in output.items():
                             layer_params = YoloParams(side=out_blob.buffer.shape[2])
-                            ppes += parse_yolo_region_ppe(out_blob.buffer, in_person_frame.shape[2:],
+                            ppes += parse_yolo_region_ppe(out_blob.buffer, input_person_frame.shape[2:],
                                                           person_frame.shape[:-1], layer_params,
                                                           0.5, person_x1, person_y1)
 
                         ppes = sorted(ppes, key=lambda ppe: ppe['confidence'], reverse=True)
+			    
                         for i in range(len(ppes)):
                             if ppes[i]['confidence'] == 0:
                                 continue
@@ -312,20 +335,19 @@ class Thread(QThread):
                             'xmax'] <= obj['xmax'] and ppe['ymax'] <= obj['ymax']:
                             counter += 1
                     if counter == 2:
-                        color = (0, 255, 0)
-
+                        color = GREEN
                     else:
-                        color = (0, 0, 255)
+                        color = RED
 
                     if obj['class_id'] != 2:
-                        color = (0, 0, 0)
+                        color = BLACK
 
                     cv2.rectangle(res_frame, (obj['xmin'], obj['ymin']), (obj['xmax'], obj['ymax']), color, 2)
 
-                rgbImage = cv2.cvtColor(res_frame, cv2.COLOR_BGR2RGB)
-                h, w, ch = rgbImage.shape
+                rgb_image = cv2.cvtColor(res_frame, cv2.COLOR_BGR2RGB)
+                h, w, ch = rgb_image.shape
                 bytesPerLine = ch * w
-                convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format_RGB888)
+                convertToQtFormat = QImage(rgb_image.data, w, h, bytesPerLine, QImage.Format_RGB888)
                 result_image = convertToQtFormat.scaled(1600, 900, Qt.KeepAspectRatio) # 640, 480
                 self.changePixmap.emit(result_image)
 
@@ -333,26 +355,6 @@ class Thread(QThread):
                 if key == ord(' '):
                     while cv2.waitKey(30) != ord(' '): pass
 
-
-class MainWindow(QWidget, Ui_MainWindow):
-
-    def __init__(self, parent=None):
-        super(MainWindow, self).__init__(parent=parent)
-        self.setupUi(self)
-        self.show()
-        self.bt_start.clicked.connect(lambda: self.bt_start_click())
-
-    def bt_start_click(self):
-        th = Thread(self)
-        th.changePixmap.connect(self.setImage)
-        th.start()
-
-    @pyqtSlot(QImage)
-    def setImage(self, image):
-        self.label.setPixmap(QPixmap.fromImage(image))
-
-    def closeEvent(self, event):
-        event.accept()
 
 if __name__ == '__main__':
     # Resolving command-line arguments for an application
