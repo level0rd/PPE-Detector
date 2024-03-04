@@ -236,8 +236,8 @@ class Thread(QThread):
 
     def run(self):
         ie = IECore()
-        person_det = openvino_model()
-        person_det.model_load(ie, PERSON_MODEL, 'CPU', True)
+        person_net = openvino_model()
+        person_net.model_load(ie, PERSON_MODEL, 'CPU', True)
 
         model = "../yolov5n.xml"
         net = ie.read_network(model=model)
@@ -246,7 +246,7 @@ class Thread(QThread):
         net.batch_size = 1
         # Read and pre-process input images
         n, c, h, w = net.input_info[input_blob].input_data.shape
-        exec_net = ie.load_network(network=net, num_requests=2, device_name='CPU')
+        ppe_net = ie.load_network(network=net, num_requests=2, device_name='CPU')
 
         key = -1
 
@@ -269,7 +269,7 @@ class Thread(QThread):
                 res_frame = copy.deepcopy(input_img)
 
                 # Detect human body and draw bounding boxes
-                people_coordinates = person_det.image_infer(input_img)
+                people_coordinates = person_net.image_infer(input_img)
                 people = draw_bounding_boxes(res_frame, people_coordinates['detection_out'][0][0]) 
                 ppes = list()
 
@@ -301,12 +301,12 @@ class Thread(QThread):
                     input_person_frame = input_person_frame.reshape((n, c, h, w))
 			
                     try:
-                    exec_net.start_async(request_id=request_id, inputs={input_blob: input_person_frame})
+                    ppe_net.start_async(request_id=request_id, inputs={input_blob: input_person_frame})
                     except Exception as ex:
                         print(ex)
 
-                    if exec_net.requests[current_request_id].wait(-1) == 0:
-                        output = exec_net.requests[current_request_id].output_blobs
+                    if ppe_net.requests[current_request_id].wait(-1) == 0:
+                        output = ppe_net.requests[current_request_id].output_blobs
                         for layer_name, out_blob in output.items():
                             layer_params = YoloParams(side=out_blob.buffer.shape[2])
                             ppes += parse_yolo_region_ppe(out_blob.buffer, input_person_frame.shape[2:],
