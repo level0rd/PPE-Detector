@@ -25,6 +25,7 @@ PERSON_MODEL = 'person-detection-0200'
 GREEN = (0, 255, 0)
 RED = (0, 0, 255)
 BLACK = (0, 0, 0)
+YOLO_SIZE = 640
 
 class MainWindow(QWidget, Ui_MainWindow):
 
@@ -110,7 +111,7 @@ class YoloParams:
 
 def letterbox(
 	img: np.ndarray, 
-	size: Tuple[int, int] = (640, 640), 
+	size: Tuple[int, int] = (YOLO_SIZE, YOLO_SIZE), 
 	color: Tuple[int, int, int] = (114, 114, 114), 
 	auto: bool = True, 
 	scaleFill: bool = False, 
@@ -169,8 +170,8 @@ def scale_bbox_ppe(
 	person_x1: int, 
 	person_y1: int, 
 	resized_im_h: 
-	int = 640, 
-	resized_im_w: int = 640
+	int = YOLO_SIZE, 
+	resized_im_w: int = YOLO_SIZE
 ) -> Dict[str, Union[int, float]]:
 	
     gain = min(resized_im_w / im_w, resized_im_h / im_h)  # gain  = old / new
@@ -300,8 +301,8 @@ class Thread(QThread):
         while True:
             ret, input_img = cap.read()
             if ret:
-                width = int(640)
-                height = int(input_img.shape[0] * (100 / (input_img.shape[1] / 640)) / 100)
+                width = int(YOLO_SIZE)
+                height = int(input_img.shape[0] * (100 / (input_img.shape[1] / YOLO_SIZE)) / 100)
 
                 frame_size = (width, height)
 
@@ -326,8 +327,8 @@ class Thread(QThread):
 		    person_frame = cv2.cvtColor(crop_frame, cv2.COLOR_BGR2BGR)
 
                     request_id = current_request_id
-                    h = 640
-
+			
+                    h = YOLO_SIZE
                     input_person_frame = letterbox(person_frame, (w, h))
 
  		    # Left corner of the found person
@@ -352,7 +353,8 @@ class Thread(QThread):
 							  input_person_frame.shape[2:],
                                                           person_frame.shape[:-1], 
 							  layer_params,
-                                                          0.5, person_x1, person_y1)
+                                                          0.5, 
+							  person_x1, person_y1)
 
                         ppes = sorted(ppes, key=lambda ppe: ppe['confidence'], reverse=True)
 			    
