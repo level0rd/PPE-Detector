@@ -287,7 +287,7 @@ class Thread(QThread):
         input_blob = next(iter(net.input_info))
         net.batch_size = 1
         # Read and pre-process input images
-        n, c, h, w = net.input_info[input_blob].input_data.shape
+        label, confidence, height, width = net.input_info[input_blob].input_data.shape
         ppe_net = ie.load_network(network=net, num_requests=2, device_name='CPU')
 
         key = -1
@@ -328,8 +328,8 @@ class Thread(QThread):
 
                     request_id = current_request_id
 			
-                    h = YOLO_SIZE
-                    input_person_frame = letterbox(person_frame, (w, h))
+                    height = YOLO_SIZE
+                    input_person_frame = letterbox(person_frame, (width, height))
 
  		    # Left corner of the found person
                     person_x1 = obj['xmin']
@@ -338,7 +338,7 @@ class Thread(QThread):
                     # Resize input_frame to network size
 		    # Change data layout from HWC to CHW
                     input_person_frame = input_person_frame.transpose((2, 0, 1))  
-                    input_person_frame = input_person_frame.reshape((n, c, h, w))
+                    input_person_frame = input_person_frame.reshape((label, confidence, height, width))
 			
                     try:
                     	ppe_net.start_async(request_id=request_id, inputs={input_blob: input_person_frame})
@@ -372,7 +372,7 @@ class Thread(QThread):
 
 # ------------------------------------------- Drawing ppe bboxes -------------------------------------------
                 for obj in people:
-                    # Define color of bboxes
+
                     counter = 0
                     for ppe in ppes:
                         if obj['class_id'] == 2 and ppe['xmin'] >= obj['xmin'] and ppe['ymin'] >= obj['ymin'] and ppe[
@@ -389,9 +389,9 @@ class Thread(QThread):
                     cv2.rectangle(res_frame, (obj['xmin'], obj['ymin']), (obj['xmax'], obj['ymax']), color, 2)
 
                 rgb_image = cv2.cvtColor(res_frame, cv2.COLOR_BGR2RGB)
-                h, w, ch = rgb_image.shape
-                bytesPerLine = ch * w
-                convertToQtFormat = QImage(rgb_image.data, w, h, bytesPerLine, QImage.Format_RGB888)
+                height, width, channels = rgb_image.shape
+                bytesPerLine = channels * width
+                convertToQtFormat = QImage(rgb_image.data, width, height, bytesPerLine, QImage.Format_RGB888)
                 result_image = convertToQtFormat.scaled(1600, 900, Qt.KeepAspectRatio) # 640, 480
                 self.changePixmap.emit(result_image)
 
