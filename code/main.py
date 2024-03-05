@@ -2,6 +2,7 @@
 https://github.com/violet17/yolov5_demo
 """
 from __future__ import print_function, division
+from typing import List, Tuple, Dict, Union
 
 import copy
 import os
@@ -27,7 +28,7 @@ BLACK = (0, 0, 0)
 
 class MainWindow(QWidget, Ui_MainWindow):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QtWidgets.QWidget = None):
         super(MainWindow, self).__init__(parent=parent)
         self.setupUi(self)
         self.show()
@@ -35,14 +36,14 @@ class MainWindow(QWidget, Ui_MainWindow):
 
     def bt_start_click(self):
         th = Thread(self)
-        th.changePixmap.connect(self.setImage)
+        th.changePixmap.connect(self.set)
         th.start()
 
-    @pyqtSlot(QImage)
-    def setImage(self, image):
+    @pyqtSlot(Q)
+    def set(self, image: QImage):
         self.label.setPixmap(QPixmap.fromImage(image))
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QtGui.QCloseEvent):
         event.accept()
 	    
 
@@ -50,7 +51,7 @@ class openvino_model:
     def __init__(self):
         pass
 
-    def model_load(self, ie, model_name, device='CPU', verbose=False):
+    def model_load(self, ie: IECore, model_name: str, device: str = 'CPU', verbose: bool = False):
         model_tmpl = '../' + model_name +'.xml'
         self.net    = ie.read_network(model_tmpl.format(model_name, 'xml'))
         self.exenet = ie.load_network(self.net, device)
@@ -62,7 +63,7 @@ class openvino_model:
         if verbose:
             print(model_name, self.iblob_name, self.iblob_shape, self.oblob_name, self.oblob_shape)
 
-    def image_infer(self, *args):
+    def image_infer(self, *args: np.ndarray) -> dict:
         inputs = {}
         for img, bname, bshape in zip(args, self.iblob_name, self.iblob_shape):
             n,c,h,w = bshape
@@ -74,7 +75,14 @@ class openvino_model:
         self.res = self.exenet.infer(inputs)
         return self.res
 
-def draw_bounding_boxes(img, bboxes, threshold=0.75, color=(255,255,255), thickness=2): # 0.80
+def get_bounding_boxes(
+	img: np.ndarray, 
+	bboxes: List[Tuple[float]], 
+	threshold=0.75, 
+	color=(255,255,255), 
+	thickness=2
+) -> List[Dict[str, Union[int, float]]]: # 0.80
+	
     h, w, c = img.shape
     objects = list()
     for bbox in bboxes:
@@ -90,7 +98,7 @@ def draw_bounding_boxes(img, bboxes, threshold=0.75, color=(255,255,255), thickn
 class YoloParams:
     # ------------------------------------------- Extracting layer parameters ------------------------------------------
     # Magic numbers are copied from yolo samples
-    def __init__(self, side):
+    def __init__(self,  side: int):
         self.num = 3  # if 'num' not in param else int(param['num'])
         self.coords = 4  # if 'coords' not in param else int(param['coords'])
         self.classes = 80  # if 'classes' not in param else int(param['classes'])
@@ -100,7 +108,15 @@ class YoloParams:
                         373.0, 326.0]  # if 'anchors' not in param else [float(a) for a in param['anchors'].split(',')]
 
 
-def letterbox(img, size=(640, 640), color=(114, 114, 114), auto=True, scaleFill=False, scaleup=True):
+def letterbox(
+	img: np.ndarray, 
+	size: Tuple[int, int] = (640, 640), 
+	color: Tuple[int, int, int] = (114, 114, 114), 
+	auto: bool = True, 
+	scaleFill: bool = False, 
+	scaleup: bool = True
+) -> np.ndarray:
+	
     # Resize image to a 32-pixel-multiple rectangle https://github.com/ultralytics/yolov3/issues/232
     shape = img.shape[:2]  # current shape [height, width]
     w, h = size
@@ -141,7 +157,22 @@ def letterbox(img, size=(640, 640), color=(114, 114, 114), auto=True, scaleFill=
 
     return img
 
-def scale_bbox_ppe(x, y, height, width, class_id, confidence, im_h, im_w, person_x1, person_y1, resized_im_h=640, resized_im_w=640):
+def scale_bbox_ppe(
+	x: int, 
+	y: int, 
+	height: int, 
+	width: int, 
+	class_id: int, 
+	confidence: float, 
+	im_h: int, 
+	im_w: int, 
+	person_x1: int, 
+	person_y1: int, 
+	resized_im_h: 
+	int = 640, 
+	resized_im_w: int = 640
+) -> Dict[str, Union[int, float]]:
+	
     gain = min(resized_im_w / im_w, resized_im_h / im_h)  # gain  = old / new
     pad = (resized_im_w - im_w * gain) / 2, (resized_im_h - im_h * gain) / 2  # wh padding
     x = int((x - pad[0]) / gain)
@@ -165,14 +196,23 @@ def scale_bbox_ppe(x, y, height, width, class_id, confidence, im_h, im_w, person
     # support Numpy types (e.g., cv2.rectangle doesn't support int64 in color parameter)
     return dict(xmin=fullx1, xmax=fullx2, ymin=fully1, ymax=fully2, class_id=class_id.item(), confidence=confidence.item())
 
-def entry_index(side, coord, classes, location, entry):
+def entry_index(side: int, coord: int, classes: int, location: int, entry: int) -> int:
     side_power_2 = side ** 2
     n = location // side_power_2
     loc = location % side_power_2
     return int(side_power_2 * (n * (coord + classes + 1) + entry) + loc)
 
 
-def parse_yolo_region_ppe(blob, resized_image_shape, original_im_shape, params, threshold, person_x1, person_y1):
+def parse_yolo_region_ppe(
+	blob: np.ndarray, 
+	resized_image_shape: Tuple[int, int], 
+	original_im_shape: Tuple[int, int], 
+	params: YoloParams, 
+	threshold: float, 
+	person_x1: int, 
+	person_y1: int
+) -> List[Dict[str, Union[int, float]]]:
+	
     # ------------------------------------------ Validating output parameters ------------------------------------------
     out_blob_n, out_blob_c, out_blob_h, out_blob_w = blob.shape
     predictions = 1.0 / (1.0 + np.exp(-blob))
@@ -198,11 +238,11 @@ def parse_yolo_region_ppe(blob, resized_image_shape, original_im_shape, params, 
             continue
         x = (2 * x - 0.5 + col) * (resized_image_w / out_blob_w)
         y = (2 * y - 0.5 + row) * (resized_image_h / out_blob_h)
-        if int(resized_image_w / out_blob_w) == 8 & int(resized_image_h / out_blob_h) == 8:  # 80x80,
+        if int(resized_image_w / out_blob_w) == 8 and int(resized_image_h / out_blob_h) == 8:  # 80x80,
             idx = 0
-        elif int(resized_image_w / out_blob_w) == 16 & int(resized_image_h / out_blob_h) == 16:  # 40x40
+        elif int(resized_image_w / out_blob_w) == 16 and int(resized_image_h / out_blob_h) == 16:  # 40x40
             idx = 1
-        elif int(resized_image_w / out_blob_w) == 32 & int(resized_image_h / out_blob_h) == 32:  # 20x20
+        elif int(resized_image_w / out_blob_w) == 32 and int(resized_image_h / out_blob_h) == 32:  # 20x20
             idx = 2
 
         width = (2 * width) ** 2 * params.anchors[idx * 6 + 2 * n]
@@ -217,7 +257,7 @@ def parse_yolo_region_ppe(blob, resized_image_shape, original_im_shape, params, 
     return objects
 
 
-def intersection_over_union(box_1, box_2):
+def intersection_over_union(box_1: Dict[str, Union[int, float]], box_2: Dict[str, Union[int, float]]) -> float:
     width_of_overlap_area = min(box_1['xmax'], box_2['xmax']) - max(box_1['xmin'], box_2['xmin'])
     height_of_overlap_area = min(box_1['ymax'], box_2['ymax']) - max(box_1['ymin'], box_2['ymin'])
     if width_of_overlap_area < 0 or height_of_overlap_area < 0:
@@ -235,6 +275,7 @@ class Thread(QThread):
     changePixmap = pyqtSignal(QImage)
 
     def run(self):
+# ------------------------------------------- Loading models -------------------------------------------	    
         ie = IECore()
         person_net = openvino_model()
         person_net.model_load(ie, PERSON_MODEL, 'CPU', True)
@@ -270,9 +311,10 @@ class Thread(QThread):
 
                 # Detect human body and draw bounding boxes
                 people_coordinates = person_net.image_infer(input_img)
-                people = draw_bounding_boxes(res_frame, people_coordinates['detection_out'][0][0]) 
+                people = get_bounding_boxes(res_frame, people_coordinates['detection_out'][0][0]) 
                 ppes = list()
 
+# ------------------------------------------- PPE searching -------------------------------------------			    
                 for obj in people:
 
 		    
@@ -280,11 +322,8 @@ class Thread(QThread):
                     pil_img = Image.fromarray(rgb_image)
 
                     # Cropping a person from an image
-		    crop_frame = pil_img.crop(
-		    # The coordinates of the corners of the bounding boxes of people in pixels of the source image
-					     (obj['xmin'], obj['ymin'], obj['xmax'], obj['ymax']))  
-                    person_frame_rgb = numpy.array(crop_frame)
-                    person_frame = cv2.cvtColor(person_frame_rgb, cv2.COLOR_RGB2BGR)
+                    crop_frame = res_frame[obj['ymin']:obj['ymax'], obj['xmin']:obj['xmax']]
+		    person_frame = cv2.cvtColor(crop_frame, cv2.COLOR_BGR2BGR)
 
                     request_id = current_request_id
                     h = 640
@@ -301,16 +340,18 @@ class Thread(QThread):
                     input_person_frame = input_person_frame.reshape((n, c, h, w))
 			
                     try:
-                    ppe_net.start_async(request_id=request_id, inputs={input_blob: input_person_frame})
+                    	ppe_net.start_async(request_id=request_id, inputs={input_blob: input_person_frame})
                     except Exception as ex:
                         print(ex)
-
+			
                     if ppe_net.requests[current_request_id].wait(-1) == 0:
                         output = ppe_net.requests[current_request_id].output_blobs
                         for layer_name, out_blob in output.items():
                             layer_params = YoloParams(side=out_blob.buffer.shape[2])
-                            ppes += parse_yolo_region_ppe(out_blob.buffer, input_person_frame.shape[2:],
-                                                          person_frame.shape[:-1], layer_params,
+                            ppes += parse_yolo_region_ppe(out_blob.buffer, 
+							  input_person_frame.shape[2:],
+                                                          person_frame.shape[:-1], 
+							  layer_params,
                                                           0.5, person_x1, person_y1)
 
                         ppes = sorted(ppes, key=lambda ppe: ppe['confidence'], reverse=True)
@@ -327,6 +368,7 @@ class Thread(QThread):
 
                 people = people + ppes
 
+# ------------------------------------------- Drawing ppe bboxes -------------------------------------------
                 for obj in people:
                     # Define color of bboxes
                     counter = 0
@@ -357,7 +399,6 @@ class Thread(QThread):
 
 
 if __name__ == '__main__':
-    # Resolving command-line arguments for an application
     app = QApplication(sys.argv)
     ex = MainWindow()
     sys.exit(app.exec_())
