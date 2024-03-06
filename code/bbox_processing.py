@@ -171,13 +171,16 @@ def intersection_over_union(box_1: Dict[str, Union[int, float]], box_2: Dict[str
     """
     width_of_overlap_area = min(box_1['xmax'], box_2['xmax']) - max(box_1['xmin'], box_2['xmin'])
     height_of_overlap_area = min(box_1['ymax'], box_2['ymax']) - max(box_1['ymin'], box_2['ymin'])
+        
     if width_of_overlap_area < 0 or height_of_overlap_area < 0:
         area_of_overlap = 0
     else:
         area_of_overlap = width_of_overlap_area * height_of_overlap_area
+            
     box_1_area = (box_1['ymax'] - box_1['ymin']) * (box_1['xmax'] - box_1['xmin'])
     box_2_area = (box_2['ymax'] - box_2['ymin']) * (box_2['xmax'] - box_2['xmin'])
     area_of_union = box_1_area + box_2_area - area_of_overlap
+        
     if area_of_union == 0:
         return 0
     return area_of_overlap / area_of_union
