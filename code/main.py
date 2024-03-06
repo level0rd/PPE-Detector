@@ -125,7 +125,6 @@ class Thread(QThread):
         ppe_net = ie.load_network(network=yolo, num_requests=2, device_name='CPU')
 
         key = -1
-
         video_name = os.listdir('videos')
         cap = cv2.VideoCapture('videos/' + video_name[0])
 
