@@ -20,12 +20,12 @@ from PyQt5.QtWidgets import  QWidget, QLabel, QApplication, QMainWindow
 from PyQt5.QtCore import QThread, Qt, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QImage, QPixmap
 
-
 PERSON_MODEL = 'person-detection-0200'
 GREEN = (0, 255, 0)
 RED = (0, 0, 255)
 BLACK = (0, 0, 0)
 REQUEST_ID = 0
+
 
 def parse_yolo_region_ppe(
         blob: np.ndarray,
@@ -97,7 +97,6 @@ def parse_yolo_region_ppe(
 
     return objects
 
-
 class Thread(QThread):
     """
     Thread class to run inference on video frames.
@@ -108,7 +107,7 @@ class Thread(QThread):
     """
     finished = pyqtSignal()
     changePixmap = pyqtSignal(QImage)
-
+        
     def run(self):
         """
         Run method to perform inference on video frames.
@@ -125,6 +124,7 @@ class Thread(QThread):
         ppe_net = ie.load_network(network=yolo, num_requests=2, device_name='CPU')
 
         key = -1
+
         video_name = os.listdir('videos')
         cap = cv2.VideoCapture('videos/' + video_name[0])
 
@@ -140,18 +140,18 @@ class Thread(QThread):
 
                 frame_size = (frame_width, frame_height)
                 frame = cv2.resize(frame, frame_size)
+
                 result_frame = copy.deepcopy(frame)
+                rgb_frame = cv2.cvtColor(result_frame, cv2.COLOR_BGR2RGB)
 
                 # Detect human body and draw bounding boxes
-                res = person_net.image_infer(frame)
-                people = draw_bounding_boxes(result_frame, res['detection_out'][0][0]) # Отрисовка людей
+                person_net_output = person_net.image_infer(frame)
+                people = draw_bounding_boxes(result_frame, person_net_output['detection_out'][0][0]) # Отрисовка людей
                 ppe_list = list()
 
 # ------------------------------------------- PPE searching -------------------------------------------
                 for obj in people:
-
                     # obj contains the coordinates of the corners of people in pixels of the original image
-                    rgb_frame = cv2.cvtColor(result_frame, cv2.COLOR_BGR2RGB)
                     crop_frame = rgb_frame[obj['ymin']:obj['ymax'], obj['xmin']:obj['xmax']]
                     person_frame = cv2.cvtColor(crop_frame, cv2.COLOR_RGB2BGR)
 
@@ -170,9 +170,9 @@ class Thread(QThread):
                         print(ex)
 
                     if ppe_net.requests[REQUEST_ID].wait(-1) == 0:
-                        output = ppe_net.requests[REQUEST_ID].output_blobs
+                        yolo_output = ppe_net.requests[REQUEST_ID].output_blobs
 
-                        for layer_name, out_blob in output.items():
+                        for layer_name, out_blob in yolo_output.items():
                             layer_params = YoloParams(side=out_blob.buffer.shape[2])
 
                             ppe_list += parse_yolo_region_ppe(
@@ -254,6 +254,7 @@ class MainWindow(QWidget, Ui_MainWindow):
 
     def closeEvent(self, event):
         event.accept()
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
