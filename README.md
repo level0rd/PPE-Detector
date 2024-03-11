@@ -8,7 +8,7 @@ The program detects people and personal protective equipment on the received vid
 
 ## Architecture
 <p align="center">
-  <img width="4096" alt="Arch1_7" src="https://github.com/level0rd/ppe_detector/assets/45522296/f96c26be-13cd-47e5-a291-c73300c11afd.png">
+  <img width="4096" alt="Архитектура" src="https://github.com/level0rd/PPE-Detector/assets/45522296/ad7cacb6-9d2f-44ac-94b9-f0975ffd72f4.png">
 </p>
 
 ## Example
