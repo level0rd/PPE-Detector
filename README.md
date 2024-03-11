@@ -3,7 +3,7 @@ The program detects people and personal protective equipment on the received vid
 
 ## Algoritm
 <p align="center">
-  <img width="898" alt="full" src="https://github.com/level0rd/ppe_detector/assets/45522296/4779932e-5c1a-4b5d-a62a-f7976c135a92.png"> 
+  <img width="898" alt="Алгоритм" src="https://github.com/level0rd/PPE-Detector/assets/45522296/6c28523d-4285-4bb4-a8ae-3ef16825f274.png">
 </p>
 
 ## Architecture
