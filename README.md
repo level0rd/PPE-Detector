@@ -15,3 +15,5 @@ The program detects people and personal protective equipment on the received vid
 <p align="center">
   <img width="809" alt="Пример программы" src="https://github.com/level0rd/ppe_detector/assets/45522296/b53e89bc-273b-4096-a65b-4ff5ee80cdbf.png">
 </p>
+
+![Example](https://github.com/level0rd/PPE-Detector/assets/45522296/67ab6e0a-71d0-4a2e-8f18-fed1a7317adf)
